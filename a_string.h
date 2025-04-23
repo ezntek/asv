@@ -126,14 +126,27 @@ a_string a_string_duplicate(const a_string* s);
 a_string a_string_sprintf(const char* restrict format, ...);
 
 /**
- * similar to fgets, but reads into an a_string.
+ * similar to fgets, but reads into an a_string. it returns the
+ * buffer at buf.data or NULL.
  *
- * the string is guaranteed to be null-terminated.
+ * the string is guaranteed to be null-terminated. passing in a valid a_string
+ * will result in its buffer being overwritten with a buffer of capacity cap.
+ * passing in a capacity of 0 will result in a default capacity of 8192.
  *
  * @param cap the maximum capacity of the string to be entered.
  * @param stream the file stream.
  */
-a_string a_string_fgets(size_t cap, FILE* restrict stream);
+char* a_string_fgets(a_string* buf, size_t cap, FILE* restrict stream);
+
+/**
+ * reads the entirety of a file into an a_string.
+ *
+ * the capacity of the string will be equal to the length of string read from
+ * the file. the maximum supported capacity for a single line is 8192 chars.
+ *
+ * @param filename the name of the file.
+ */
+a_string a_string_read_file(const char* filename);
 
 /**
  * gets a string input from stdin into an a_string with a non-formatted prompt.

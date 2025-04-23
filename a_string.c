@@ -8,6 +8,8 @@
  */
 
 #include <ctype.h>
+#include <errno.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,6 +90,9 @@ void a_string_reserve(a_string* s, size_t cap) {
         panic("the string is invalid");
     }
 
+    if (s->cap == cap)
+        return;
+
     s->data = realloc(s->data, cap);
     check_alloc(s->data);
     s->cap = cap;
@@ -128,12 +133,41 @@ a_string a_string_sprintf(const char* restrict format, ...) {
     return res;
 }
 
-a_string a_string_fgets(size_t cap, FILE* restrict stream) {
-    a_string new = a_string_with_capacity(cap);
-    fgets(new.data, cap, stream);
-    new.len = strlen(new.data);
-    new.data[new.len] = '\0';
-    return new;
+char* a_string_fgets(a_string* buf, size_t cap, FILE* restrict stream) {
+    size_t actual_cap = (cap == 0) ? 8192 : cap;
+    if (!a_string_invalid(buf)) {
+        a_string_reserve(buf, actual_cap);
+    } else {
+        *buf = a_string_with_capacity(actual_cap);
+    }
+    char* fgets_res = fgets(buf->data, actual_cap, stream);
+    if (fgets_res == NULL)
+        return NULL;
+    buf->len = strlen(buf->data);
+    return buf->data;
+}
+
+a_string a_string_read_file(const char* filename) {
+    FILE* fp = fopen(filename, "r");
+    if (fp == NULL) {
+        if (errno == ENOENT) {
+            panic("file %s: No such file or directory", filename);
+        } else {
+            panic("file %s: Error while opening file", filename);
+            // TODO: better errno handling?
+        }
+    }
+
+    a_string res = a_string_new();
+    a_string buf = a_string_with_capacity(8192);
+
+    while (a_string_fgets(&buf, 0, fp)) {
+        a_string_append_astr(&res, &buf);
+    }
+
+    a_string_free(&buf);
+
+    return res;
 }
 
 a_string a_string_input(const char* prompt) {
@@ -142,9 +176,11 @@ a_string a_string_input(const char* prompt) {
         fflush(stdout);
     }
 
-    a_string raw = a_string_fgets(8192, stdin);
+    a_string raw = {0};
+    a_string_fgets(&raw, 0, stdin);
     a_string_reserve(&raw, raw.len + 1);
-    raw.data[--raw.len] = '\0';
+    if (raw.data[raw.len - 1] == '\n')
+        raw.data[--raw.len] = '\0';
     return raw;
 }
 
