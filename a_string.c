@@ -111,7 +111,7 @@ a_string a_string_from_cstr(const char* cstr) {
 
 a_string astr(const char* cstr) { return a_string_from_cstr(cstr); }
 
-a_string a_string_duplicate(const a_string* s) {
+a_string a_string_dupe(const a_string* s) {
     a_string res = a_string_with_capacity(s->cap);
     res.len = s->len;
     strncpy(res.data, s->data, s->len);
@@ -184,7 +184,7 @@ bool a_string_valid(const a_string* s) {
     return !(s->len == (size_t)-1 || s->cap == (size_t)-1 || s->data == NULL);
 }
 
-a_string a_string_empty(void) {
+a_string a_string_new_uninitialized(void) {
     return (a_string){
         .len = -1,
         .cap = -1,

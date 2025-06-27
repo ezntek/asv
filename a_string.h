@@ -29,7 +29,8 @@ typedef struct {
 } a_string;
 
 /**
- * creates an empty a_string.
+ * creates and initializes an empty, valid a_string. If you would like to create
+ * an uninitialized and invalid a_string, use `a_string_new_uninitialized`.
  */
 a_string a_string_new(void);
 
@@ -115,7 +116,7 @@ a_string astr(const char* cstr);
  *
  * @param s the string to duplicate
  */
-a_string a_string_duplicate(const a_string* s);
+a_string a_string_dupe(const a_string* s);
 
 /**
  * similar to asprintf, but for an a_string.
@@ -166,9 +167,9 @@ a_string a_string_input(const char* prompt);
 bool a_string_valid(const a_string* s);
 
 /**
- * creates an empty, invalid a_string.
+ * creates an uninitialized, invalid a_string.
  */
-a_string a_string_empty(void);
+a_string a_string_new_uninitialized(void);
 
 /**
  * adds 1 character to an a_string

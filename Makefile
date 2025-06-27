@@ -20,7 +20,6 @@ endif
 
 build: setup $(HEADERS) $(OBJ)
 	ld -r $(OBJ) -o asv.o
-	cat $(HEADERS) > asv.h
 
 setup: deps
 
