@@ -39,12 +39,10 @@ a_string a_string_with_capacity(size_t cap) {
     return res;
 }
 
-void a_string_clear(a_string* s) {
-    memset(s->data, '\0', s->cap);
-}
+void a_string_clear(a_string* s) { memset(s->data, '\0', s->cap); }
 
 void a_string_free(a_string* s) {
-    if (a_string_invalid(s)) {
+    if (!a_string_valid(s)) {
         panic("the string is invalid");
     }
 
@@ -86,7 +84,7 @@ void a_string_ncopy(a_string* dest, const a_string* src, size_t chars) {
 }
 
 void a_string_reserve(a_string* s, size_t cap) {
-    if (a_string_invalid(s)) {
+    if (!a_string_valid(s)) {
         panic("the string is invalid");
     }
 
@@ -111,9 +109,7 @@ a_string a_string_from_cstr(const char* cstr) {
     return res;
 }
 
-a_string astr(const char* cstr) {
-    return a_string_from_cstr(cstr);
-}
+a_string astr(const char* cstr) { return a_string_from_cstr(cstr); }
 
 a_string a_string_duplicate(const a_string* s) {
     a_string res = a_string_with_capacity(s->cap);
@@ -135,7 +131,7 @@ a_string a_string_sprintf(const char* restrict format, ...) {
 
 char* a_string_fgets(a_string* buf, size_t cap, FILE* restrict stream) {
     size_t actual_cap = (cap == 0) ? 8192 : cap;
-    if (!a_string_invalid(buf)) {
+    if (a_string_valid(buf)) {
         a_string_reserve(buf, actual_cap);
     } else {
         *buf = a_string_with_capacity(actual_cap);
@@ -184,8 +180,16 @@ a_string a_string_input(const char* prompt) {
     return raw;
 }
 
-bool a_string_invalid(const a_string* s) {
-    return (s->len == (size_t)-1 || s->cap == (size_t)-1 || s->data == NULL);
+bool a_string_valid(const a_string* s) {
+    return !(s->len == (size_t)-1 || s->cap == (size_t)-1 || s->data == NULL);
+}
+
+a_string a_string_empty(void) {
+    return (a_string){
+        .len = -1,
+        .cap = -1,
+        .data = NULL,
+    };
 }
 
 void a_string_append_char(a_string* s, char c) {

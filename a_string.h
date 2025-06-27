@@ -159,11 +159,16 @@ a_string a_string_read_file(const char* filename);
 a_string a_string_input(const char* prompt);
 
 /**
- * checks if an a_string is invalid
+ * checks if an a_string is valid
  *
  * @param s the string to be checked
  */
-bool a_string_invalid(const a_string* s);
+bool a_string_valid(const a_string* s);
+
+/**
+ * creates an empty, invalid a_string.
+ */
+a_string a_string_empty(void);
 
 /**
  * adds 1 character to an a_string
