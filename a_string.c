@@ -6,10 +6,10 @@
  * This source code form is licensed under the MIT/Expat license.
  * Visit the OSI website for a digital version.
  */
+#define _POSIX_C_SOURCE 200809L
 
 #include <ctype.h>
 #include <errno.h>
-#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

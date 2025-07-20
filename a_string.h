@@ -6,8 +6,8 @@
  * This source code form is licensed under the MIT/Expat license.
  * Visit the OSI website for a digital version.
  */
-
-#pragma once
+#ifndef _A_STRING_H
+#define _A_STRING_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -311,3 +311,5 @@ bool a_string_equal(const a_string* lhs, const a_string* rhs);
  */
 
 bool a_string_equal_case_insensitive(const a_string* lhs, const a_string* rhs);
+
+#endif // _A_STRING_H
