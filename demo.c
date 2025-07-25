@@ -42,5 +42,6 @@ int main(void) {
 
     a_vector_int_free(&other);
     a_vector_int_free(&v);
+
     return 0;
 }
