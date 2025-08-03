@@ -1,0 +1,4 @@
+Hello, viewer
+This is some text in a file.
+This is a longer sentence that will be read in a demo file.
+Goodbye

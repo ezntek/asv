@@ -52,6 +52,8 @@ void a_string_clear(a_string* s);
  * destroys the heap-allocated data in an a_string. Do not read from the
  * a_string after it is destroyed!
  *
+ * if the a_string is invalid, this is a no-op.
+ *
  * @param s the string to be destroyed
  */
 void a_string_free(a_string* s);
@@ -82,6 +84,15 @@ void a_string_copy_cstr(a_string* dest, const char* src);
  * @param chars the number of chars
  */
 void a_string_ncopy(a_string* dest, const a_string* src, size_t chars);
+
+/**
+ * Copies N bytes of one C string to another.
+ *
+ * @param dest the dest string
+ * @param src the source string
+ * @param chars the number of chars
+ */
+void a_string_ncopy_cstr(a_string* dest, const char* src, size_t chars);
 
 /**
  * reserves a specific capacity on an a_string.
@@ -124,13 +135,63 @@ a_string a_string_dupe(const a_string* s);
  * @param format the format
  * @param ... format args
  */
-a_string a_string_sprintf(const char* restrict format, ...);
+a_string a_string_asprintf(const char* restrict format, ...);
+
+/**
+ * similar to sprintf, but for an a_string.
+ *
+ * The string is guaranteed to be null-terminated. Passing in a valid a_string
+ * will result in its buffer being overwritten by the formatted data, with its
+ * capacity resized accordingly.
+ *
+ * Passing in an uninitialized/invalid a_string will create a new one.
+ *
+ * @param format the format
+ * @param ... format args
+ */
+size_t a_string_sprintf(a_string* dest, const char* restrict format, ...);
+
+/**
+ * prints an a_string to a file stream.
+ *
+ * @param s the string
+ * @param stream the stream
+ * @return number of bytes written
+ */
+int a_string_fprint(const a_string* s, FILE* restrict stream);
+
+/**
+ * prints an a_string to a file stream, with a newline.
+ *
+ * @param s the string
+ * @param stream the stream
+ * @return number of bytes written
+ */
+int a_string_fprintln(const a_string* s, FILE* restrict stream);
+
+/**
+ * prints an a_string to stdout.
+ *
+ * @param s the string
+ * @param stream the stream
+ * @return number of bytes written
+ */
+int a_string_print(const a_string* s);
+
+/**
+ * prints an a_string to stdout, with a newline.
+ *
+ * @param s the string
+ * @param stream the stream
+ * @return number of bytes written
+ */
+int a_string_println(const a_string* s);
 
 /**
  * similar to fgets, but reads into an a_string. it returns the
  * buffer at buf.data or NULL.
  *
- * the string is guaranteed to be null-terminated. passing in a valid a_string
+ * The string is guaranteed to be null-terminated. Passing in a valid a_string
  * will result in its buffer being overwritten with a buffer of capacity cap.
  * passing in a capacity of 0 will result in a default capacity of 8192.
  *
@@ -140,10 +201,25 @@ a_string a_string_sprintf(const char* restrict format, ...);
 char* a_string_fgets(a_string* buf, size_t cap, FILE* restrict stream);
 
 /**
+ * reads a single line from a file.
+ *
+ * the resultant string's size is resized to the number of characters read, if
+ * less than 8192 bytes.
+ *
+ * @param buf the target buffer to write into, it can be either valid or invalid
+ * @param stream the target file stream
+ * @return true on success, false on error or EOF while no characters have been
+ * read.
+ */
+bool a_string_read_line(a_string* buf, FILE* restrict stream);
+
+/**
  * reads the entirety of a file into an a_string.
  *
  * the capacity of the string will be equal to the length of string read from
  * the file. the maximum supported capacity for a single line is 8192 chars.
+ *
+ * Returns an invalid `a_string` upon error, and sets errno according to fopen.
  *
  * @param filename the name of the file.
  */
@@ -169,7 +245,7 @@ bool a_string_valid(const a_string* s);
 /**
  * creates an uninitialized, invalid a_string.
  */
-a_string a_string_new_uninitialized(void);
+a_string a_string_new_invalid(void);
 
 /**
  * adds 1 character to an a_string
@@ -214,6 +290,14 @@ void a_string_append(a_string* s, const char* new);
  * @return the last character
  */
 char a_string_pop(a_string* s);
+
+/**
+ * gets the last character from an a_string.
+ *
+ * @param s the target string
+ * @return the last character
+ */
+char a_string_get_last(const a_string* s);
 
 /**
  * removes all whitespace characters from the left side of an a_string.
