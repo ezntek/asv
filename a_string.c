@@ -261,8 +261,10 @@ a_string a_string_input(const char* prompt) {
     }
 
     a_string raw;
-    a_string_read_line(&raw, stdin);
-    return raw;
+    if (!a_string_read_line(&raw, stdin))
+        return a_string_new_invalid();
+    else
+        return raw;
 }
 
 bool a_string_valid(const a_string* s) {
