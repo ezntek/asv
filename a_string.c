@@ -260,7 +260,7 @@ a_string a_string_input(const char* prompt) {
         fflush(stdout);
     }
 
-    a_string raw;
+    a_string raw = a_string_new();
     if (!a_string_read_line(&raw, stdin))
         return a_string_new_invalid();
     else
