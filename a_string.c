@@ -194,11 +194,11 @@ size_t a_string_sprintf(a_string* dest, const char* restrict format, ...) {
 }
 
 int a_string_fprint(const a_string* s, FILE* restrict stream) {
-    return fprintf(stream, "%s", s->data);
+    return fprintf(stream, "%.*s", (int)s->len, s->data);
 }
 
 int a_string_fprintln(const a_string* s, FILE* restrict stream) {
-    return fprintf(stream, "%s\n", s->data);
+    return fprintf(stream, "%.*s\n", (int)s->len, s->data);
 }
 
 int a_string_print(const a_string* s) { return a_string_fprint(s, stdout); }
@@ -242,15 +242,15 @@ a_string a_string_read_file(const char* filename) {
         return a_string_new_invalid();
     }
 
-    a_string res = a_string_new();
-    a_string buf = a_string_with_capacity(8192);
-
-    while (a_string_fgets(&buf, 0, fp)) {
-        a_string_append_astr(&res, &buf);
+    fseek(fp, 0, SEEK_END);
+    size_t sz = ftell(fp);
+    rewind(fp);
+    a_string res = a_string_with_capacity(sz);
+    if (fread(res.data, 1, sz, fp) != sz) {
+        return a_string_new_invalid();
     }
-
-    a_string_free(&buf);
-
+    res.len = sz;
+    fclose(fp);
     return res;
 }
 
@@ -384,9 +384,6 @@ a_string a_string_trim(const a_string* s) {
         }
     }
 
-    if (end == s->len)
-        end--;
-
     while (strchr(" \n\t\r", s->data[end])) { // end >= 0 is always true
         end--;
     }
@@ -433,7 +430,8 @@ void a_string_inplace_trim_right(a_string* s) {
     size_t oldlen = s->len;
     s->len = end + 1;
 
-    memset(&s->data[end + 1], 0, oldlen - end + 1);
+    if (end > s->len)
+        memset(&s->data[end + 1], 0, oldlen - end + 1);
 }
 
 void a_string_inplace_trim(a_string* s) {
@@ -444,17 +442,14 @@ void a_string_inplace_trim(a_string* s) {
     size_t end = s->len - 1;
 
     while (begin < s->len) { // must check this first, else segfault
-        if (strchr(" \n\t\r", s->data[begin]) != NULL) {
+        if (isspace(s->data[begin])) {
             begin++;
         } else {
             break;
         }
     }
 
-    if (end == s->len)
-        end--;
-
-    while (strchr(" \n\t\r", s->data[end])) { // end >= 0 is always true
+    while (isspace(s->data[end])) { // end >= 0 is always true
         end--;
     }
 
@@ -463,7 +458,8 @@ void a_string_inplace_trim(a_string* s) {
     size_t oldlen = s->len;
     s->len = end - begin;
     memmove(&s->data[0], &s->data[begin], s->len);
-    memset(&s->data[s->len + 1], 0, oldlen - s->len + 1);
+    if (end > s->len)
+        memset(&s->data[end], 0, oldlen - s->len + 1);
 }
 
 a_string a_string_toupper(const a_string* s) {
