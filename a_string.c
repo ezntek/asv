@@ -65,7 +65,7 @@ void a_string_copy(a_string* dest, const a_string* src) {
     }
 
     strcpy(dest->data, src->data);
-    dest->len = strlen(src->data);
+    dest->len = src->len;
 }
 
 void a_string_copy_cstr(a_string* dest, const char* src) {
@@ -79,7 +79,7 @@ void a_string_copy_cstr(a_string* dest, const char* src) {
         a_string_reserve(dest, len);
     }
 
-    strcpy(dest->data, src);
+    strncpy(dest->data, src, len);
     dest->len = len;
     if (dest->data[dest->len] != '\0') {
         dest->data[dest->len] = '\0'; // always nullterm
@@ -296,15 +296,19 @@ void a_string_append_cstr(a_string* s, const char* new) {
     if (new == NULL)
         panic("null string passed to append operation!");
 
-    size_t required_cap = s->len + strlen(new) + 1;
+    size_t new_len = strlen(new);
+    size_t required_cap = s->len + new_len + 1;
     if (required_cap > s->cap) {
         while (s->cap < required_cap) {
             a_string_reserve(s, s->cap * 2);
         }
     }
 
-    strcat(s->data, new);
-    s->len += strlen(new);
+    for (usize i = 0; i < new_len; i++) {
+        s->data[s->len++] = new[i];
+    }
+    s->data[s->len] = '\0'; // null terminate it
+    s->len += new_len;
 }
 
 void a_string_append_astr(a_string* s, const a_string* new) {
@@ -522,6 +526,16 @@ bool a_string_equal(const a_string* lhs, const a_string* rhs) {
     return true;
 }
 
+bool a_string_equal_cstr(const a_string* lhs, const char* rhs) {
+    if (!rhs)
+        return false;
+    a_string arhs = {
+        .data = (char*)rhs,
+        .len = strlen(rhs),
+    }; // very sketchy, i know
+    return a_string_equal(lhs, &arhs);
+}
+
 bool a_string_equal_case_insensitive(const a_string* lhs, const a_string* rhs) {
     if (!a_string_valid(lhs))
         panic("cannot compare an invalid a_string!");
@@ -540,4 +554,15 @@ bool a_string_equal_case_insensitive(const a_string* lhs, const a_string* rhs) {
     }
 
     return true;
+}
+
+bool a_string_equal_case_insensitive_cstr(const a_string* lhs,
+                                          const char* rhs) {
+    if (!rhs)
+        return false;
+    a_string arhs = {
+        .data = (char*)rhs,
+        .len = strlen(rhs),
+    }; // very sketchy, i know
+    return a_string_equal_case_insensitive(lhs, &arhs);
 }
