@@ -9,124 +9,78 @@
 #ifndef _A_VECTOR_H
 #define _A_VECTOR_H
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 
-#define A_VECTOR_DECL(T)                                                       \
+#define AV_INITIAL_SIZE  5
+#define AV_GROWTH_FACTOR 2
+
+#define AV_DECL(T, name)                                                       \
     typedef struct {                                                           \
         T* data;                                                               \
-        size_t len;                                                            \
-        size_t cap;                                                            \
-    } a_vector_##T;                                                            \
-    a_vector_##T a_vector_##T##_new(void);                                     \
-    a_vector_##T a_vector_##T##_with_capacity(size_t cap);                     \
-    a_vector_##T a_vector_##T##_from_slice(const T* slice, size_t nitems);     \
-    void a_vector_##T##_free(a_vector_##T* v);                                 \
-    bool a_vector_##T##_valid(a_vector_##T* v);                                \
-    void a_vector_##T##_reserve(a_vector_##T* v, size_t cap);                  \
-    void a_vector_##T##_append(a_vector_##T* v, T new_elem);                   \
-    void a_vector_##T##_append_vector(a_vector_##T* v,                         \
-                                      const a_vector_##T* other);              \
-    void a_vector_##T##_append_slice(a_vector_##T* v, const T* ptr,            \
-                                     size_t nitems);                           \
-    T a_vector_##T##_pop(a_vector_##T* v);                                     \
-    T a_vector_##T##_pop_at(a_vector_##T* v, size_t pos);
-#define A_VECTOR_GROWTH_FACTOR 3
-#define A_VECTOR_IMPL(T)                                                       \
-    a_vector_##T a_vector_##T##_new(void) {                                    \
-        return a_vector_##T##_with_capacity(5);                                \
-    }                                                                          \
-    a_vector_##T a_vector_##T##_with_capacity(size_t cap) {                    \
-        a_vector_##T res = {.len = 0, .cap = cap};                             \
-        res.data = calloc(res.cap, sizeof(T));                                 \
-        check_alloc(res.data);                                                 \
-        return res;                                                            \
-    }                                                                          \
-    a_vector_##T a_vector_##T##_from_slice(const T* slice, size_t nitems) {    \
-        a_vector_##T res = a_vector_##T##_with_capacity(nitems);               \
-        memcpy(res.data, slice, nitems * sizeof(T));                           \
-        res.len = nitems;                                                      \
-        return res;                                                            \
-    }                                                                          \
-    void a_vector_##T##_free(a_vector_##T* v) {                                \
-        free(v->data);                                                         \
-        v->len = (size_t)-1;                                                   \
-        v->cap = (size_t)-1;                                                   \
-    }                                                                          \
-    bool a_vector_##T##_valid(a_vector_##T* v) {                               \
-        return !(v->len == (size_t)-1 || v->cap == (size_t)-1 ||               \
-                 v->data == NULL);                                             \
-    }                                                                          \
-    void a_vector_##T##_reserve(a_vector_##T* v, size_t cap) {                 \
-        if (!a_vector_##T##_valid(v)) {                                        \
-            panic("the vector is invalid");                                    \
+        u32 len;                                                               \
+        u32 cap;                                                               \
+    } name;
+
+#define av_append(v, item)                                                     \
+    do {                                                                       \
+        if ((v)->len + 1 > (v)->cap) {                                         \
+            if ((v)->cap == 0)                                                 \
+                (v)->cap = AV_INITIAL_SIZE;                                    \
+            else                                                               \
+                (v)->cap *= AV_GROWTH_FACTOR;                                  \
+            (v)->data = realloc((v)->data, sizeof(*(v)->data) * (v)->cap);     \
+            check_alloc((v)->data);                                            \
         }                                                                      \
-        v->data = realloc(v->data, sizeof(T) * cap);                           \
-        check_alloc(v->data);                                                  \
-        v->cap = cap;                                                          \
-    }                                                                          \
-    void a_vector_##T##_append(a_vector_##T* v, T new_elem) {                  \
-        if (!a_vector_##T##_valid(v)) {                                        \
-            panic("the vector is invalid");                                    \
+        (v)->data[(v)->len++] = (item);                                        \
+    } while (0)
+
+#define av_clear(v)                                                            \
+    do {                                                                       \
+        memset((v)->data, 0, sizeof(*(v)->data) * (v)->cap);                   \
+        (v)->len = 0;                                                          \
+    } while (0)
+
+#define av_free(v)                                                             \
+    do {                                                                       \
+        if ((v)->data) {                                                       \
+            free((v)->data);                                                   \
+            (v)->data = NULL;                                                  \
         }                                                                      \
-        if (v->len + 1 > v->cap) {                                             \
-            a_vector_##T##_reserve(v, v->cap * A_VECTOR_GROWTH_FACTOR);        \
+    } while (0)
+
+#define av_reserve(v, amt)                                                     \
+    do {                                                                       \
+        if (amt >= (v)->len) {                                                 \
+            (v)->data = realloc((v)->data, sizeof(*(v)->data) * amt);          \
+            check_alloc((v)->data);                                            \
+            (v)->cap = amt;                                                    \
         }                                                                      \
-        v->data[v->len++] = new_elem;                                          \
-    }                                                                          \
-    void a_vector_##T##_append_vector(a_vector_##T* v,                         \
-                                      const a_vector_##T* other) {             \
-        if (!a_vector_##T##_valid(v)) {                                        \
-            panic("the vector is invalid");                                    \
+    } while (0)
+
+#define av_append_many(v, itms, itms_len)                                      \
+    do {                                                                       \
+        if ((v)->len + itms_len > (v)->cap) {                                  \
+            (v)->cap += itms_len;                                              \
+            (v)->data = realloc((v)->data, sizeof(*(v)->data) * (v)->cap);     \
+            check_alloc((v)->data);                                            \
         }                                                                      \
-        size_t len = v->len + other->len;                                      \
-        if (len > v->cap) {                                                    \
-            size_t sz = v->cap;                                                \
-            while (sz < len)                                                   \
-                sz *= A_VECTOR_GROWTH_FACTOR;                                  \
-            a_vector_##T##_reserve(v, sz);                                     \
-        }                                                                      \
-        memcpy(&v->data[v->len], other->data, sizeof(T) * other->len);         \
-        v->len += other->len;                                                  \
-    }                                                                          \
-    void a_vector_##T##_append_slice(a_vector_##T* v, const T* data,           \
-                                     size_t nitems) {                          \
-        if (!a_vector_##T##_valid(v)) {                                        \
-            panic("the vector is invalid");                                    \
-        }                                                                      \
-        size_t len = v->len + nitems;                                          \
-        if (len > v->cap) {                                                    \
-            size_t sz = v->cap;                                                \
-            while (sz < len)                                                   \
-                sz *= A_VECTOR_GROWTH_FACTOR;                                  \
-            a_vector_##T##_reserve(v, sz);                                     \
-        }                                                                      \
-        memcpy(&v->data[v->len], data, sizeof(T) * nitems);                    \
-        v->len += nitems;                                                      \
-    }                                                                          \
-    T a_vector_##T##_pop(a_vector_##T* v) {                                    \
-        if (!a_vector_##T##_valid(v)) {                                        \
-            panic("the vector is invalid");                                    \
-        }                                                                      \
-        T res = v->data[--v->len];                                             \
-        if (v->len < (size_t)(v->cap / A_VECTOR_GROWTH_FACTOR)) {              \
-            a_vector_##T##_reserve(v, v->cap / A_VECTOR_GROWTH_FACTOR);        \
-        }                                                                      \
-        return res;                                                            \
-    }                                                                          \
-    T a_vector_##T##_pop_at(a_vector_##T* v, size_t pos) {                     \
-        if (!a_vector_##T##_valid(v)) {                                        \
-            panic("the vector is invalid");                                    \
-        }                                                                      \
-        if (pos >= v->len) {                                                   \
-            panic("array index %zu out of range", pos);                        \
-        }                                                                      \
-        T res = v->data[pos];                                                  \
-        size_t items = (v->len - pos - 1);                                     \
-        memmove(&v->data[pos], &v->data[pos + 1], items * sizeof(T));          \
-        v->len--;                                                              \
-        return res;                                                            \
-    }
+        memcpy(&(v)->data[(v)->len], itms, sizeof(*(v)->data) * itms_len);     \
+        (v)->len += itms_len;                                                  \
+    } while (0)
+
+#define av_last(v) ((v)->data[(assert((v)->len > 0), (v)->len - 1)])
+
+#define av_at(v, pos) ((v)->data[(assert(0 <= pos && pos < (v)->len), pos)])
+
+#define av_pop(v, pos) ((v)->data[(assert((v)->len > 0), --(v)->len)])
+
+#define av_pop_many(v, count)                                                  \
+    do {                                                                       \
+        assert(count < (v)->len);                                              \
+        (v)->len -= count;                                                     \
+    } while (0)
 
 #endif // _A_VECTOR_H
