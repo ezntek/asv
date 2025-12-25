@@ -17,8 +17,8 @@
 
 #include "a_common.h"
 
-#define as_fmt(s)  (int)(s).len, (s).data
-#define as_fmtp(s) (int)(s)->len, (s)->data
+#define as_fmt(s)  (int)((s).len), ((s).data)
+#define as_fmtp(s) (int)((s)->len), ((s)->data)
 
 /**
  * null terminated, heap-allocated string slice.
@@ -246,11 +246,6 @@ a_string as_input(const char* prompt);
  * @param s the string to be checked
  */
 bool as_valid(const a_string* s);
-
-/**
- * creates an uninitialized, invalid a_string.
- */
-a_string as_new_invalid(void);
 
 /**
  * adds 1 character to an a_string

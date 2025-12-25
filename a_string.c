@@ -41,9 +41,9 @@ void as_free(a_string* s) {
     }
 
     free(s->data);
-
-    s->len = -1;
-    s->cap = -1;
+    s->data = NULL;
+    s->len = 0;
+    s->cap = 0;
 }
 
 void as_copy(a_string* dest, const a_string* src) {
@@ -181,11 +181,13 @@ usize as_sprintf(a_string* dest, const char* restrict format, ...) {
     } else {
         *dest = as_with_capacity(len + 1);
     }
+    as_clear(dest);
 
     usize res = vsnprintf(dest->data, dest->cap, format, args);
 
     va_end(args);
 
+    dest->len = len;
     return res;
 }
 
@@ -212,11 +214,11 @@ char* as_fgets(a_string* buf, usize cap, FILE* restrict stream) {
     } else {
         *buf = as_with_capacity(actual_cap);
     }
-    errno = 0;
     char* fgets_res = fgets(buf->data, actual_cap, stream);
     if (fgets_res == NULL)
         return NULL;
     buf->len = strlen(buf->data);
+    buf->data[buf->len] = 0;
     return buf->data;
 }
 
@@ -240,7 +242,7 @@ a_string as_read_file(const char* filename) {
 
     FILE* fp = fopen(filename, "r");
     if (fp == NULL) {
-        return as_new_invalid();
+        return (a_string){0};
     }
 
     fseek(fp, 0, SEEK_END);
@@ -248,7 +250,7 @@ a_string as_read_file(const char* filename) {
     rewind(fp);
     a_string res = as_with_capacity(sz + 1);
     if (fread(res.data, 1, sz, fp) != sz) {
-        return as_new_invalid();
+        return (a_string){0};
     }
     res.len = sz;
     res.data[res.len] = '\0';
@@ -264,21 +266,13 @@ a_string as_input(const char* prompt) {
 
     a_string raw = as_new();
     if (!as_read_line(&raw, stdin))
-        return as_new_invalid();
+        return (a_string){0};
     else
         return raw;
 }
 
 bool as_valid(const a_string* s) {
     return !(s->len == (usize)-1 || s->cap == (usize)-1 || s->data == NULL);
-}
-
-a_string as_new_invalid(void) {
-    return (a_string){
-        .len = -1,
-        .cap = -1,
-        .data = NULL,
-    };
 }
 
 void as_append_char(a_string* s, char c) {
@@ -295,6 +289,7 @@ void as_append_char(a_string* s, char c) {
 void as_append_cstr(a_string* s, const char* n) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
+
     if (n == NULL)
         panic("null string passed to append operation!");
 
