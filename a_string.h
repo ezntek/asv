@@ -11,8 +11,14 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "a_common.h"
+
+#define as_fmt(s)  (int)(s).len, (s).data
+#define as_fmtp(s) (int)(s)->len, (s)->data
 
 /**
  * null terminated, heap-allocated string slice.
@@ -22,31 +28,31 @@ typedef struct {
     char* data;
 
     // length of the string.
-    size_t len;
+    usize len;
 
     // capacity of the string. includes the null terminator.
-    size_t cap;
+    usize cap;
 } a_string;
 
 /**
  * creates and initializes an empty, valid a_string. If you would like to create
- * an uninitialized and invalid a_string, use `a_string_new_uninitialized`.
+ * an uninitialized and invalid a_string, use `as_new_uninitialized`.
  */
-a_string a_string_new(void);
+a_string as_new(void);
 
 /**
  * creates an empty a_string with a specified capacity.
  *
  * @param cap the capacity of the string.
  */
-a_string a_string_with_capacity(size_t cap);
+a_string as_with_capacity(usize cap);
 
 /**
  * clears the string with null terminators, keeping the capacity.
  *
  * @param s the string
  */
-void a_string_clear(a_string* s);
+void as_clear(a_string* s);
 
 /**
  * destroys the heap-allocated data in an a_string. Do not read from the
@@ -56,7 +62,7 @@ void a_string_clear(a_string* s);
  *
  * @param s the string to be destroyed
  */
-void a_string_free(a_string* s);
+void as_free(a_string* s);
 
 /**
  * Copies one a_string to another.
@@ -64,7 +70,7 @@ void a_string_free(a_string* s);
  * @param dest the dest string
  * @param src the source string
  */
-void a_string_copy(a_string* dest, const a_string* src);
+void as_copy(a_string* dest, const a_string* src);
 
 /**
  * Copies the entirety of a C string into an a_string.
@@ -74,7 +80,7 @@ void a_string_copy(a_string* dest, const a_string* src);
  * @param dest the dest string
  * @param src the source string
  */
-void a_string_copy_cstr(a_string* dest, const char* src);
+void as_copy_cstr(a_string* dest, const char* src);
 
 /**
  * Copies N bytes of one a_string to another.
@@ -83,16 +89,16 @@ void a_string_copy_cstr(a_string* dest, const char* src);
  * @param src the source string
  * @param chars the number of chars
  */
-void a_string_ncopy(a_string* dest, const a_string* src, size_t chars);
+void as_ncopy(a_string* dest, const a_string* src, usize chars);
 
 /**
- * Copies N bytes of one C string to another.
+ * Copies N bytes of one C string to an a_string.
  *
  * @param dest the dest string
  * @param src the source string
  * @param chars the number of chars
  */
-void a_string_ncopy_cstr(a_string* dest, const char* src, size_t chars);
+void as_ncopy_cstr(a_string* dest, const char* src, usize chars);
 
 /**
  * reserves a specific capacity on an a_string.
@@ -100,7 +106,7 @@ void a_string_ncopy_cstr(a_string* dest, const char* src, size_t chars);
  * @param s the string to be modified
  * @param cap the new capacity of the string
  */
-void a_string_reserve(a_string* s, size_t cap);
+void as_reserve(a_string* s, usize cap);
 
 /**
  * creates an a_string from a C string.
@@ -108,12 +114,12 @@ void a_string_reserve(a_string* s, size_t cap);
  * @param cstr the C string to be converted. This function does not free the
  * string if it is heap-allocated, the string is instead duplicated.
  */
-a_string a_string_from_cstr(const char* cstr);
+a_string as_from_cstr(const char* cstr);
 
 /**
  * creates an a_string from a C string.
  *
- * shorthand of `a_string_from_cstr()`
+ * shorthand of `as_from_cstr()`
  *
  * @param cstr the C string to be converted. This function does not free the
  * string if it is heap-allocated, the string is instead duplicated.
@@ -127,7 +133,7 @@ a_string astr(const char* cstr);
  *
  * @param s the string to duplicate
  */
-a_string a_string_dupe(const a_string* s);
+a_string as_dupe(const a_string* s);
 
 /**
  * similar to asprintf, but for an a_string.
@@ -135,7 +141,7 @@ a_string a_string_dupe(const a_string* s);
  * @param format the format
  * @param ... format args
  */
-a_string a_string_asprintf(const char* restrict format, ...);
+a_string as_asprintf(const char* format, ...);
 
 /**
  * similar to sprintf, but for an a_string.
@@ -149,7 +155,7 @@ a_string a_string_asprintf(const char* restrict format, ...);
  * @param format the format
  * @param ... format args
  */
-size_t a_string_sprintf(a_string* dest, const char* restrict format, ...);
+usize as_sprintf(a_string* dest, const char* format, ...);
 
 /**
  * prints an a_string to a file stream.
@@ -158,7 +164,7 @@ size_t a_string_sprintf(a_string* dest, const char* restrict format, ...);
  * @param stream the stream
  * @return number of bytes written
  */
-int a_string_fprint(const a_string* s, FILE* restrict stream);
+int as_fprint(const a_string* s, FILE* stream);
 
 /**
  * prints an a_string to a file stream, with a newline.
@@ -167,7 +173,7 @@ int a_string_fprint(const a_string* s, FILE* restrict stream);
  * @param stream the stream
  * @return number of bytes written
  */
-int a_string_fprintln(const a_string* s, FILE* restrict stream);
+int as_fprintln(const a_string* s, FILE* stream);
 
 /**
  * prints an a_string to stdout.
@@ -176,7 +182,7 @@ int a_string_fprintln(const a_string* s, FILE* restrict stream);
  * @param stream the stream
  * @return number of bytes written
  */
-int a_string_print(const a_string* s);
+int as_print(const a_string* s);
 
 /**
  * prints an a_string to stdout, with a newline.
@@ -185,7 +191,7 @@ int a_string_print(const a_string* s);
  * @param stream the stream
  * @return number of bytes written
  */
-int a_string_println(const a_string* s);
+int as_println(const a_string* s);
 
 /**
  * similar to fgets, but reads into an a_string. it returns the
@@ -198,7 +204,7 @@ int a_string_println(const a_string* s);
  * @param cap the maximum capacity of the string to be entered.
  * @param stream the file stream.
  */
-char* a_string_fgets(a_string* buf, size_t cap, FILE* restrict stream);
+char* as_fgets(a_string* buf, usize cap, FILE* stream);
 
 /**
  * reads a single line from a file.
@@ -208,10 +214,9 @@ char* a_string_fgets(a_string* buf, size_t cap, FILE* restrict stream);
  *
  * @param buf the target buffer to write into, it can be either valid or invalid
  * @param stream the target file stream
- * @return true on success, false on error or EOF while no characters have been
- * read.
+ * @return true on success, and false on error
  */
-bool a_string_read_line(a_string* buf, FILE* restrict stream);
+bool as_read_line(a_string* buf, FILE* stream);
 
 /**
  * reads the entirety of a file into an a_string.
@@ -223,7 +228,7 @@ bool a_string_read_line(a_string* buf, FILE* restrict stream);
  *
  * @param filename the name of the file.
  */
-a_string a_string_read_file(const char* filename);
+a_string as_read_file(const char* filename);
 
 /**
  * gets a string input from stdin into an a_string with a non-formatted prompt.
@@ -233,19 +238,19 @@ a_string a_string_read_file(const char* filename);
  * @param prompt a C string to be printed as the prompt. leaving it as null will
  *               print no prompt.
  */
-a_string a_string_input(const char* prompt);
+a_string as_input(const char* prompt);
 
 /**
  * checks if an a_string is valid
  *
  * @param s the string to be checked
  */
-bool a_string_valid(const a_string* s);
+bool as_valid(const a_string* s);
 
 /**
  * creates an uninitialized, invalid a_string.
  */
-a_string a_string_new_invalid(void);
+a_string as_new_invalid(void);
 
 /**
  * adds 1 character to an a_string
@@ -253,7 +258,7 @@ a_string a_string_new_invalid(void);
  * @param s the target string to be concatenated
  * @param c the character to be added.
  */
-void a_string_append_char(a_string* s, char c);
+void as_append_char(a_string* s, char c);
 
 /**
  * concatenates 2 a_strings together.
@@ -262,7 +267,7 @@ void a_string_append_char(a_string* s, char c);
  * @param new the string to add on. This string will be kept intact and will not
  * be freed.
  */
-void a_string_append_astr(a_string* s, const a_string* new);
+void as_append_astr(a_string* s, const a_string* n);
 
 /**
  * concatenates a C string to an a_string.
@@ -270,18 +275,17 @@ void a_string_append_astr(a_string* s, const a_string* new);
  * @param s the target string to be concatenated
  * @param new the string to add on. This is a C string that will be kept intact.
  */
-void a_string_append_cstr(a_string* s, const char* new);
+void as_append_cstr(a_string* s, const char* n);
 
 /**
  * concatenates a C string to an a_string.
  *
- * shorthand form of `a_string_append_cstr()`.
+ * shorthand form of `as_append_cstr()`.
  *
- * @param s the target string to be concatenated
  * @param new the string to add on. This string will be kept intact and will not
  * be freed.
  */
-void a_string_append(a_string* s, const char* new);
+void as_append(a_string* s, const char* n);
 
 /**
  * removes the last character from an a_string.
@@ -289,7 +293,23 @@ void a_string_append(a_string* s, const char* new);
  * @param s the target string
  * @return the last character
  */
-char a_string_pop(a_string* s);
+char as_pop(a_string* s);
+
+/**
+ * gets the nth character from an a_string.
+ *
+ * @param s the target string
+ * @return the last character
+ */
+char as_at(const a_string* s, usize idx);
+
+/**
+ * gets the first character from an a_string.
+ *
+ * @param s the target string
+ * @return the last character
+ */
+char as_first(const a_string* s);
 
 /**
  * gets the last character from an a_string.
@@ -297,7 +317,7 @@ char a_string_pop(a_string* s);
  * @param s the target string
  * @return the last character
  */
-char a_string_get_last(const a_string* s);
+char as_last(const a_string* s);
 
 /**
  * removes all whitespace characters from the left side of an a_string.
@@ -305,7 +325,7 @@ char a_string_get_last(const a_string* s);
  * @param s the string
  * @return a new a_string.
  */
-a_string a_string_trim_left(const a_string* s);
+a_string as_trim_left(const a_string* s);
 
 /**
  * removes all whitespace characters from the right side of an a_string.
@@ -313,7 +333,7 @@ a_string a_string_trim_left(const a_string* s);
  * @param s the string
  * @return a new a_string.
  */
-a_string a_string_trim_right(const a_string* s);
+a_string as_trim_right(const a_string* s);
 
 /**
  * removes all whitespace characters from the left and right sides of an
@@ -322,7 +342,7 @@ a_string a_string_trim_right(const a_string* s);
  * @param s the string
  * @return a new a_string.
  */
-a_string a_string_trim(const a_string* s);
+a_string as_trim(const a_string* s);
 
 /**
  * (IN PLACE) removes all whitespace characters from the left side of an
@@ -331,7 +351,7 @@ a_string a_string_trim(const a_string* s);
  * @param s the string
  * @return a new a_string.
  */
-void a_string_inplace_trim_left(a_string* s);
+void as_inplace_trim_left(a_string* s);
 
 /**
  * (IN PLACE) removes all whitespace characters from the right side of an
@@ -340,7 +360,7 @@ void a_string_inplace_trim_left(a_string* s);
  * @param s the string
  * @return a new a_string.
  */
-void a_string_inplace_trim_right(a_string* s);
+void as_inplace_trim_right(a_string* s);
 
 /**
  * (IN PLACE) removes all whitespace characters from the left and right sides of
@@ -349,35 +369,35 @@ void a_string_inplace_trim_right(a_string* s);
  * @param s the string
  * @return a new a_string.
  */
-void a_string_inplace_trim(a_string* s);
+void as_inplace_trim(a_string* s);
 
 /**
  * converts all the characters in the a_string to uppercase.
  *
  * @param s the string
  */
-a_string a_string_toupper(const a_string* s);
+a_string as_toupper(const a_string* s);
 
 /**
  * converts all the characters in the a_string to lowercase.
  *
  * @param s the string
  */
-a_string a_string_tolower(const a_string* s);
+a_string as_tolower(const a_string* s);
 
 /**
  * (IN PLACE) converts all the characters in the a_string to uppercase.
  *
  * @param s the string
  */
-void a_string_inplace_toupper(a_string* s);
+void as_inplace_toupper(a_string* s);
 
 /**
  * (IN PLACE) converts all the characters in the a_string to lowercase.
  *
  * @param s the string
  */
-void a_string_inplace_tolower(a_string* s);
+void as_inplace_tolower(a_string* s);
 
 /**
  * checks if 2 a_strings are the same.
@@ -385,7 +405,15 @@ void a_string_inplace_tolower(a_string* s);
  * @param lhs the first string
  * @param rhs the other string
  */
-bool a_string_equal(const a_string* lhs, const a_string* rhs);
+bool as_equal(const a_string* lhs, const a_string* rhs);
+
+/**
+ * checks if an a_string is equal to a C string, case insensitive
+ *
+ * @param lhs the first string
+ * @param rhs the other string
+ */
+bool as_equal_cstr(const a_string* lhs, const char* rhs);
 
 /**
  * checks if 2 a_strings are the same, case insensitive.
@@ -393,7 +421,79 @@ bool a_string_equal(const a_string* lhs, const a_string* rhs);
  * @param lhs the first string
  * @param rhs the other string
  */
+bool as_equal_case_insensitive(const a_string* lhs, const a_string* rhs);
 
-bool a_string_equal_case_insensitive(const a_string* lhs, const a_string* rhs);
+/**
+ * checks if an a_string is equal to a C string, case insensitive
+ *
+ * @param lhs the first string
+ * @param rhs the other string
+ */
+bool as_equal_case_insensitive(const a_string* lhs, const a_string* rhs);
+
+/**
+ * slices an a_string from begin to end, from a C string, discluding end.
+ *
+ * @param src the source string
+ * @param begin the beginning
+ * @param end the end
+ * @return the new string
+ */
+a_string as_slice_cstr(const char* src, usize begin, usize end);
+
+/**
+ * slices an a_string from begin to end, discluding end.
+ *
+ * @param src the source string
+ * @param begin the beginning
+ * @param end the end
+ * @return the new string
+ */
+a_string as_slice(const a_string* src, usize begin, usize end);
+
+/**
+ * checks if a target string is contained within a list of a_strings.
+ *
+ * @param needle the string to find
+ * @param haystacks the strings that the string might be
+ * @param len the number of strings in the haystack
+ */
+bool as_in(const a_string* needle, const a_string** haystack, usize len);
+
+/**
+ * checks if a target string is contained within a list of C strings.
+ *
+ * @param needle the string to find
+ * @param haystacks the strings that the string might be
+ * @param len the number of strings in the haystack
+ */
+bool as_in_cstr(const a_string* needle, const char** haystack, usize len);
+
+/**
+ * converts an a_string to a double.
+ *
+ * this is basically a wrapper around `strtod`. check strtod(3) for info
+ * regarding the return value on overflow or underflow, and supported inputs.
+ *
+ * @param src the source string to convert
+ * @param res pointer to the resultant number, which will be set on success.
+ * @return index of first invalid character. if it is equal to the length of the
+ * string, the conversion is successful. returns ERANGE on a range error.
+ */
+usize as_to_double(const a_string* src, double* res);
+
+/**
+ * converts an a_string to a int64_t.
+ *
+ * this is basically a wrapper around `strtoll`. check strtol(3) for info
+ * regarding the return value on overflow/underflow, and supported inputs.
+ *
+ * @param src the source
+ * @param res pointer to the resultant number, which will be set on success.
+ * @param base base of the number. check strtol(3) for more info.
+ * @return index of the first invalid character, if it is equal to the length of
+ * the string, the conversion is successful. returns ERANGE on a range error.
+ */
+usize as_to_integer(const a_string* src, int64_t* res, int base);
 
 #endif // _A_STRING_H
