@@ -17,6 +17,12 @@
 
 #include "a_common.h"
 
+/// wide char
+typedef u16 wchar;
+
+/// double wide char
+typedef u32 dchar;
+
 #define as_fmt(s)  (int)((s).len), ((s).data)
 #define as_fmtp(s) (int)((s)->len), ((s)->data)
 
@@ -490,5 +496,38 @@ usize as_to_double(const a_string* src, double* res);
  * the string, the conversion is successful. returns ERANGE on a range error.
  */
 usize as_to_integer(const a_string* src, int64_t* res, int base);
+
+/**
+ * counts how many UTF-8 codepoints are in an a_string
+ *
+ * @param s the string
+ * @return the number of UTF-8 characters there are
+ */
+usize au_len(const a_string* s);
+
+/**
+ * checks if a UTF-8 a_string is valid.
+ *
+ * @param s the string
+ */
+bool au_valid(const a_string* s);
+
+/**
+ * returns the address of the nth UTF-8 codepoint in an a_string.
+ *
+ * @param s the string
+ * @param idx the index
+ * @return the address of the beginning of the codepoint
+ */
+u8* au_pos(const a_string* s, usize idx);
+
+/**
+ * returns the unicode character at the nth index of a UTF-8 a_string.
+ *
+ * @param s the string
+ * @param idx the index
+ * @return the decoded codepoint
+ */
+dchar au_at(const a_string* s, usize idx);
 
 #endif // _A_STRING_H

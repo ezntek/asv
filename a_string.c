@@ -652,3 +652,138 @@ usize as_to_integer(const a_string* src, int64_t* res, int base) {
         return diff;
     }
 }
+
+#define iscont(c) (((u8)(c) & 0xC0) == 0x80)
+
+usize au_len(const a_string* s) {
+    usize len = 0;
+    for (usize i = 0; i < s->len; i++) {
+        if (!iscont(s->data[i]))
+            len++;
+    }
+    return len;
+}
+
+bool au_valid(const a_string* s) {
+    if (!as_valid(s))
+        return false;
+
+    usize cur_cp = 0, rembytes = 0, saved_rembytes = 0, i = 0;
+    u8 ch = 0;
+    for (i = 0; i < s->len; i++) {
+        ch = s->data[i];
+
+        bool is_continuation = (ch & 0xC0) == 0x80;
+        if (is_continuation) {
+            if (!rembytes)
+                return false; // stray continuation
+
+            rembytes--;
+            continue;
+        }
+
+        saved_rembytes = rembytes;
+        if ((ch & 0x80) == 0) {
+            rembytes = 0;
+        } else if ((ch & 0xE0) == 0xC0) {
+            rembytes = 1;
+        } else if ((ch & 0xF0) == 0xE0) {
+            rembytes = 2;
+        } else if ((ch & 0xF8) == 0xF0) {
+            rembytes = 3;
+        } else {
+            // junk
+            return false;
+        }
+
+        if (saved_rembytes)
+            return false;
+
+        if (i + rembytes >= s->len)
+            return false;
+
+        if (rembytes) {
+            u8 next = s->data[i + 1];
+            if ((ch & 0xE0) == 0xC0) {
+                // reject overlong, lead byte must be >=0b1100010
+                if (ch < 0xC2)
+                    return false;
+            } else if ((ch & 0xF0) == 0xE0) {
+                // overlong
+                if (ch == 0xE0 && next < 0xA0)
+                    return false;
+                // reject surrogates
+                if (ch == 0xED && next >= 0xA0)
+                    return false;
+            } else if ((ch & 0xF8) == 0xF0) {
+                // overlong
+                if (ch == 0xF0 && next < 0x90)
+                    return false;
+                // range
+                if (ch == 0xF4 && next > 0x8F)
+                    return false;
+                // cannot encode >U+10FFFF
+                if (ch > 0xF4)
+                    return false;
+            }
+        }
+    }
+
+    if (rembytes)
+        return false;
+
+    return true;
+}
+
+u8* au_pos(const a_string* s, usize idx) {
+    usize cur_cp = 0;
+
+    for (int i = 0; i < s->len; i++) {
+        if (cur_cp == idx)
+            return (u8*)&s->data[i];
+
+        if (!iscont(s->data[i])) {
+            if (cur_cp == idx)
+                return (u8*)&s->data[i];
+            cur_cp++;
+        }
+    }
+
+    return NULL;
+}
+
+dchar au_at(const a_string* s, usize idx) {
+    u8* pos = au_pos(s, idx);
+
+    if (!pos)
+        panic("character at position %d out of bounds!", (int)idx);
+
+    if (iscont(*pos))
+        panic("tried to get a unicode character from a continuation byte!");
+
+    dchar res = 0;
+    u8 initial = pos[0];
+    if ((initial & 0x80) == 0) {
+        // single
+        res = initial;
+    } else if ((initial & 0xE0) == 0xC0) {
+        // two byte
+        // 0x1F = 0b00011111 (5 bits) lead
+        // 0x3F = 0b00111111 (6 bits) cont
+        res = (dchar)((initial & 0x1F) << 6) | (pos[1] & 0x3F);
+    } else if ((initial & 0xF0) == 0xE0) {
+        // three byte
+        // 5 lead 6 cont 6 cont
+        res = (dchar)((initial & 0x0F) << 12) | (pos[1] & 0x3F) << 6 |
+              (pos[2] & 0x3F);
+    } else if ((initial & 0xF8) == 0xF0) {
+        // four byte
+        // 5 lead 3x6 cont
+        res = (dchar)((initial & 0x07) << 18) | (pos[1] & 0x3F) << 12 |
+              (pos[2] & 0x3F) << 6 | (pos[3] & 0x3F);
+    } else {
+        panic("junk found in UTF-8 string");
+    }
+
+    return res;
+}
