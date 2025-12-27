@@ -16,6 +16,7 @@
 #include <stdlib.h>
 
 #include "a_common.h"
+#include "a_vector.h"
 
 /// wide char
 typedef u16 wchar;
@@ -497,6 +498,11 @@ usize as_to_double(const a_string* src, double* res);
  */
 usize as_to_integer(const a_string* src, int64_t* res, int base);
 
+// === UNICODE STUFF ===
+// string of 32 bit unicode codepoints
+
+AV_DECL(dchar, a_dstring);
+
 /**
  * counts how many UTF-8 codepoints are in an a_string
  *
@@ -513,6 +519,15 @@ usize au_len(const a_string* s);
 bool au_valid(const a_string* s);
 
 /**
+ * (STATIC) decode a single unicode codepoint from the ptr to
+ * the leading byte. Assumes and asserts that the char is valid.
+ *
+ * @param ptr the pointer to the leading byte
+ * @return the char
+ */
+dchar au_decode(u8* ptr);
+
+/**
  * returns the address of the nth UTF-8 codepoint in an a_string.
  *
  * @param s the string
@@ -520,6 +535,35 @@ bool au_valid(const a_string* s);
  * @return the address of the beginning of the codepoint
  */
 u8* au_pos(const a_string* s, usize idx);
+
+#define au_iter(s, vname)                                                      \
+    for (u8* vname = au_next_begin((s), NULL); vname;                          \
+         vname = au_next_begin((s), vname))
+
+/**
+ * returns the next position of a UTF-8 codepoint given a beginning memory
+ * location within the bounds of the a_string buffer.
+ *
+ * This is useful for manually iterating over an a_string efficiently.
+ *
+ * @param s the string
+ * @param ptr the address, can be left NULL to assume the beginning of the
+ * string. Returns NULL on error/stop.
+ */
+u8* au_next_begin(const a_string* s, u8* begin);
+
+/**
+ * returns the next unicode character given a beginning memory location within
+ * the bounds of the a_string buffer.
+ *
+ * This is useful for manually iterating over an a_string efficiently.
+ *
+ * @param s the string
+ * @param ptr the address, can be left NULL to assume the beginning of the
+ * string.
+ * @return the char
+ */
+dchar au_next_char(const a_string* s, u8* begin);
 
 /**
  * returns the unicode character at the nth index of a UTF-8 a_string.
@@ -529,5 +573,13 @@ u8* au_pos(const a_string* s, usize idx);
  * @return the decoded codepoint
  */
 dchar au_at(const a_string* s, usize idx);
+
+/**
+ * returns an a_vector (heap dynamic array) of UTF-32 codepoints.
+ *
+ * @param s the string
+ * @return the new UTF-32 string (must be freed).
+ */
+a_dstring au_codepoints(const a_string* s);
 
 #endif // _A_STRING_H

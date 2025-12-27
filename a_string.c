@@ -6,6 +6,8 @@
  * This source code form is licensed under the MIT/Expat license.
  * Visit the OSI website for a digital version.
  */
+#include "a_vector.h"
+#include <endian.h>
 #define _POSIX_C_SOURCE 200809L
 
 #include <ctype.h>
@@ -673,8 +675,7 @@ bool au_valid(const a_string* s) {
     for (i = 0; i < s->len; i++) {
         ch = s->data[i];
 
-        bool is_continuation = (ch & 0xC0) == 0x80;
-        if (is_continuation) {
+        if (iscont(ch)) {
             if (!rembytes)
                 return false; // stray continuation
 
@@ -738,10 +739,7 @@ bool au_valid(const a_string* s) {
 u8* au_pos(const a_string* s, usize idx) {
     usize cur_cp = 0;
 
-    for (int i = 0; i < s->len; i++) {
-        if (cur_cp == idx)
-            return (u8*)&s->data[i];
-
+    for (usize i = 0; i < s->len; i++) {
         if (!iscont(s->data[i])) {
             if (cur_cp == idx)
                 return (u8*)&s->data[i];
@@ -750,6 +748,64 @@ u8* au_pos(const a_string* s, usize idx) {
     }
 
     return NULL;
+}
+
+u8* au_next_begin(const a_string* s, u8* begin) {
+    if (!begin)
+        begin = (u8*)s->data;
+
+    const u8* endptr = (u8*)s->data + s->len;
+
+    // sync first
+    while (begin < endptr && iscont(*begin)) {
+        begin++;
+    }
+    // we are now on a leader
+    begin++;
+
+    if (begin >= endptr)
+        return NULL;
+
+    // sync to the next one
+    while (begin < endptr && iscont(*begin)) {
+        begin++;
+    }
+    if (begin >= endptr)
+        return NULL;
+
+    return begin;
+}
+
+dchar au_decode(u8* ptr) {
+    if (iscont(*ptr))
+        panic("cannot decode from a continuation byte!");
+
+    dchar res = 0;
+    u8 initial = ptr[0];
+    if ((initial & 0x80) == 0) {
+        res = initial;
+    } else if ((initial & 0xE0) == 0xC0) {
+        res = (dchar)((initial & 0x1F) << 6) | (ptr[1] & 0x3F);
+    } else if ((initial & 0xF0) == 0xE0) {
+        res = (dchar)((initial & 0x0F) << 12) | (ptr[1] & 0x3F) << 6 |
+              (ptr[2] & 0x3F);
+    } else if ((initial & 0xF8) == 0xF0) {
+        res = (dchar)((initial & 0x07) << 18) | (ptr[1] & 0x3F) << 12 |
+              (ptr[2] & 0x3F) << 6 | (ptr[3] & 0x3F);
+    } else {
+        panic("junk found in UTF-8 string");
+    }
+
+    return res;
+}
+
+dchar au_next_char(const a_string* s, u8* begin) {
+    u8* res = au_next_begin(s, begin);
+    if (!res)
+        panic("tried to get next character of a UTF-8 string, but it is out of "
+              "bounds");
+
+    return au_decode(res);
 }
 
 dchar au_at(const a_string* s, usize idx) {
@@ -761,29 +817,13 @@ dchar au_at(const a_string* s, usize idx) {
     if (iscont(*pos))
         panic("tried to get a unicode character from a continuation byte!");
 
-    dchar res = 0;
-    u8 initial = pos[0];
-    if ((initial & 0x80) == 0) {
-        // single
-        res = initial;
-    } else if ((initial & 0xE0) == 0xC0) {
-        // two byte
-        // 0x1F = 0b00011111 (5 bits) lead
-        // 0x3F = 0b00111111 (6 bits) cont
-        res = (dchar)((initial & 0x1F) << 6) | (pos[1] & 0x3F);
-    } else if ((initial & 0xF0) == 0xE0) {
-        // three byte
-        // 5 lead 6 cont 6 cont
-        res = (dchar)((initial & 0x0F) << 12) | (pos[1] & 0x3F) << 6 |
-              (pos[2] & 0x3F);
-    } else if ((initial & 0xF8) == 0xF0) {
-        // four byte
-        // 5 lead 3x6 cont
-        res = (dchar)((initial & 0x07) << 18) | (pos[1] & 0x3F) << 12 |
-              (pos[2] & 0x3F) << 6 | (pos[3] & 0x3F);
-    } else {
-        panic("junk found in UTF-8 string");
-    }
+    return au_decode(pos);
+}
+
+a_dstring au_codepoints(const a_string* s) {
+    a_dstring res = {0};
+
+    au_iter(s, ptr) av_append(&res, au_decode(ptr));
 
     return res;
 }

@@ -47,7 +47,8 @@ static const char* UTF8_INVALID[] = {
     "\x61\xF0\x9F\x92",
     NULL};
 
-void test_utf8_valid(void) {
+void test_valid(void) {
+    puts("=== validation ===");
     a_string buf = as_with_capacity(64);
     int i = 0;
     bool test_pass = false;
@@ -55,13 +56,13 @@ void test_utf8_valid(void) {
     for (ptr = UTF8_VALID; *ptr; ptr++) {
         as_copy_cstr(&buf, *ptr);
         test_pass = au_valid(&buf);
-        eprintf("test %d: ", i + 1);
+        printf("test %d: ", i + 1);
         if (test_pass) {
-            eprintf("\x1b[32;1mpassed\x1b[0m (string: `%.*s`)", as_fmt(buf));
+            printf("\x1b[32;1mpassed\x1b[0m (string: `%.*s`)", as_fmt(buf));
         } else {
-            eprintf("\x1b[31;1mfailed\x1b[0m");
+            printf("\x1b[31;1mfailed\x1b[0m");
         }
-        eprintf("\n");
+        printf("\n");
         i++;
     }
 
@@ -69,22 +70,48 @@ void test_utf8_valid(void) {
     for (ptr = UTF8_INVALID; *ptr; ptr++) {
         as_copy_cstr(&buf, *ptr);
         test_pass = !au_valid(&buf);
-        eprintf("test %d: ", i + 1);
+        printf("test %d: ", i + 1);
         if (test_pass) {
-            eprintf("\x1b[32;1mpassed\x1b[0m");
+            printf("\x1b[32;1mpassed\x1b[0m");
         } else {
-            eprintf("\x1b[31;1mfailed\x1b[0m");
+            printf("\x1b[31;1mfailed\x1b[0m");
         }
-        eprintf("\n");
+        printf("\n");
         i++;
     }
     as_free(&buf);
 }
 
-int main(void) {
+void test_basic(void) {
+    puts("=== basic ===");
     a_string s = astr("🔥a_string is kööl 真好");
     printf("very kool string: %.*s\n", as_fmt(s));
     printf("bytes: %zu, chars: %zu\n", s.len, au_len(&s));
-    test_utf8_valid();
+    as_free(&s);
+}
+
+void test_iter(void) {
+    puts("=== iter ===");
+    a_string s = astr("🔥C is a 🅱️eautifüł language💐🌸");
+    as_println(&s);
+
+    au_iter(&s, ptr) {
+        dchar ch = au_decode(ptr);
+        if (ch < 128) {
+            printf("`%c`, ", ch);
+        } else {
+            printf("%d, ", ch);
+        }
+        fflush(stdout);
+    }
+
+    putchar('\n');
+    as_free(&s);
+}
+
+int main(void) {
+    test_basic();
+    test_valid();
+    test_iter();
     return 0;
 }
